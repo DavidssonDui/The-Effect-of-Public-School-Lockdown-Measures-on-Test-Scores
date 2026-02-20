@@ -1,0 +1,24 @@
+
+Comparison of Means Before and After Cleaning by Dataset
+==================================================================
+Dataset                         Variable    Mean_Before Mean_After
+------------------------------------------------------------------
+COVID-19 School Data Hub     months_virtual    1.971      1.794   
+MIT Election Labs               demshare       0.334      0.446   
+NCES Common Core Data           pupltch       14.294      15.516  
+NCES Common Core Data          instexpstd    9,758.805  8,965.948 
+NYT COVID-19 Data Repository  caseavgp100k    24.857      23.240  
+NYT COVID-19 Data Repository deathavgp100k     0.431      0.397   
+SEDA2024                       gys_mn_all      5.429      5.233   
+SEDA2024                       gys_mn_blk      3.843      3.417   
+SEDA2024                       gys_mn_hsp      4.447      4.221   
+SEDA2024                       gys_mn_wht      6.011      5.795   
+SEDA2024                       gys_mn_ecd      4.464      4.231   
+SEDA2024 Covariates             totenrl      2,782.055  6,155.779 
+SEDA2024 Covariates              enrl38      1,247.250  2,838.756 
+SEDA2024 Covariates              perblk        0.120      0.102   
+SEDA2024 Covariates              perhsp        0.191      0.200   
+SEDA2024 Covariates              perfrl        0.531      0.488   
+SEDA2024 Covariates              perwht        0.590      0.615   
+SEDA2024 Covariates              urban         0.179      0.117   
+------------------------------------------------------------------
