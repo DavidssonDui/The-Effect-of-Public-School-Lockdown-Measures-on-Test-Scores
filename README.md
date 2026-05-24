@@ -1,0 +1,138 @@
+# The Effect of Public School Lockdown Measures on Test Scores
+
+![Language](https://img.shields.io/badge/language-R-blue)
+![Methods](https://img.shields.io/badge/methods-OLS%20TWFE%20%7C%20PSM%20%7C%20DiD-orange)
+![Topic](https://img.shields.io/badge/topic-Education%20Policy-green)
+![Status](https://img.shields.io/badge/status-Complete-brightgreen)
+
+A district-level causal analysis of how COVID-19 school lockdowns affected standardized math achievement in U.S. public schools. Combines five public datasets into a single district–year panel covering 5,504 districts across 40 states plus D.C. (195,062 observations), and applies two complementary identification strategies: a two-way fixed-effects OLS model and a propensity-score-matched difference-in-differences design.
+
+---
+
+## Research Question
+
+The 2020–2021 school year produced enormous variation in how U.S. school districts taught: some remained fully in-person, others went hybrid, and many stayed primarily remote for months. This project asks:
+
+> Did time spent in remote learning during 2020–2021 reduce student math achievement — and were the effects larger for Black, Hispanic, and economically disadvantaged students?
+
+## Headline Findings
+
+- **OLS (two-way fixed effects).** Each additional month a district spent in remote learning is associated with roughly a **0.044 grade-level decline** in math achievement growth relative to the 2019 national average (statistically significant at the 1% level for all students).
+- **Propensity-score-matched DiD.** Districts that spent any time in lockdown saw a **0.160 grade-level decline** in math scores post-2021 relative to socio-economically similar districts that remained in-person.
+- **Disproportionate impact on Black students.** Black students in lockdown districts saw a **0.290 grade-level decline**, suggesting lockdowns widened pre-existing achievement gaps.
+- The paper proposes plausible mechanisms (loss of free-reduced lunch access, single-parent households) and is transparent about the downward bias likely present in the OLS specification due to sample selection.
+
+## Methodology
+
+| Stage | Approach |
+|---|---|
+| Data assembly | Merge five public datasets (SEDA 2024 test scores + covariates, COVID-19 School Data Hub, NCES Common Core, NYT COVID data, MIT Election Lab) into a district–year panel. |
+| Treatment definition | A district is "in lockdown" for a month if ≥80% of its schools were in remote learning that month. Two treatment measures: continuous (months in lockdown) and binary (any lockdown vs. none). |
+| OLS specification | Two-way fixed-effects panel regression (`plm`, `effect = "twoways"`) of grade-year-standardized (GYS) test scores on months in remote learning, with district controls. Estimated separately for all students and for Black, Hispanic, and economically disadvantaged subgroups. |
+| Balance diagnostic | Mean comparison of districts above vs. below 6 months in lockdown to assess identification assumptions for the OLS design. |
+| Propensity score matching | Logistic regression of lockdown status on socio-economic covariates; nearest-neighbor 1:1 matching without replacement (`MatchIt`); paired *t*-test on standardized mean differences pre/post matching. |
+| DiD specification | Standard 2x2 DiD on the matched sample with district fixed effects (`plm`, `effect = "individual"`), comparing pre- vs. post-2021 test scores for lockdown vs. non-lockdown districts. Estimated for all students and key subgroups. |
+| Parallel trends | Pre-period (2016–2019) plot of treatment–control differences to assess the DiD identification assumption. |
+
+## Data Sources
+
+All five datasets are public.
+
+| Source | Use |
+|---|---|
+| **[SEDA 2024](https://edopportunity.org/get-the-data/)** (Stanford Education Data Archive) | Grade-year-standardized (GYS) district math test scores, 2009–2024, plus district covariates. |
+| **[COVID-19 School Data Hub](https://www.covidschooldatahub.com/data-resources)** | District-month learning mode (in-person / hybrid / remote) for 2020–2021. |
+| **[NCES Common Core Data](https://nces.ed.gov/ccd/elsi/tableGenerator.aspx)** | District-level pupil-teacher ratios, per-pupil instructional expenditures, county linkages. |
+| **[NYT COVID-19 Data Repository](https://github.com/nytimes/covid-19-data)** | County-level 7-day rolling averages of COVID-19 cases and deaths per 100k. |
+| **[MIT Election Lab](https://doi.org/10.7910/DVN/VOQCHQ)** | 2020 county-level presidential vote share, used as a political-leaning control. |
+
+The script links datasets by district name, state abbreviation, and county name (all normalized to lowercase). Districts with fewer than 1,000 total students are excluded.
+
+## Repository Contents
+
+```
+.
+├── PS_Lockdown_TS_.pdf            # Full paper: motivation, methods, results, limitations
+├── COVID_19SchoolOutcomes.R       # Complete replication script
+├── figures/                       # 12 figures generated by the script
+│   ├── Figure1.pdf  (map of sampled districts)
+│   ├── Figure2.pdf  (test scores by months in lockdown, unweighted)
+│   ├── Figure3.pdf  (test scores by months in lockdown, weighted)
+│   ├── Figure4.pdf  (pupil-teacher ratio vs. lockdown duration)
+│   ├── Figure5.pdf  (single-mother HH rate vs. lockdown duration)
+│   ├── Figure6.pdf  (distribution of districts, <6 vs ≥6 months)
+│   ├── Figure7.pdf  (distribution of districts, 0 vs ≥1 month)
+│   ├── Figure8.pdf  (% Hispanic students vs. lockdown duration)
+│   ├── Figure9.pdf  (PSM balance plot, pre- vs post-matching SMDs)
+│   ├── Figure10.pdf (treatment–control test score differences over time)
+│   ├── Figure11.pdf (FRL % vs. GYS test scores)
+│   └── Figure12.pdf (single-mother HH rate vs. GYS test scores)
+└── tables/
+    ├── Table1.txt   (summary statistics: raw vs. merged dataset)
+    ├── Table2.txt   (OLS regression results)
+    ├── Table3.txt   (balance table: <6 vs ≥6 months in lockdown)
+    └── Table4.txt   (DiD regression results)
+```
+
+## Running the Analysis
+
+### 1. Install R packages
+
+```r
+install.packages(c(
+  "tidyverse", "modelsummary", "plm", "stargazer", "tableone",
+  "knitr", "MatchIt", "cobalt", "maps", "patchwork"
+))
+```
+
+### 2. Set up the replication folder
+
+The script expects a `ReplicationPackage/` directory laid out as follows:
+
+```
+ReplicationPackage/
+├── Microdata/
+│   ├── raw/         # raw downloaded files (see filenames below)
+│   └── derived/     # script writes intermediate merged file here
+├── Code/
+│   └── COVID_19SchoolOutcomes.R
+└── Output/          # script writes figures and tables here
+```
+
+### 3. Download the raw data into `Microdata/raw/`
+
+The script reads these exact filenames:
+
+| Filename | Source |
+|---|---|
+| `seda_admindist_long_gys_2024.1.csv` | SEDA 2024 (long GYS dataset) |
+| `seda_cov_admindist_annual_2024.1.csv` | SEDA 2024 (district covariates) |
+| `District_Monthly_Shares_03.08.23.csv` | COVID-19 School Data Hub |
+| `us-counties.csv` | NYT COVID-19 Data Repository |
+| `countypres_2000-2020.csv` | MIT Election Lab |
+
+The NCES export file (`ELSI_csv_export_*.csv`) goes into `Microdata/derived/` because its CSV header rows are removed manually before loading.
+
+### 4. Run the script
+
+Update the `yourfiledirec` variable on line 17 to point to your local `ReplicationPackage/` folder, then run `COVID_19SchoolOutcomes.R` end-to-end. The script will write the merged panel, all 12 figures, and all 4 tables to the `Output/` and `Microdata/derived/` folders.
+
+## Skills Demonstrated
+
+- **Causal inference design**: pairing a two-way fixed-effects panel model with a propensity-score-matched DiD to triangulate effects under different identification assumptions.
+- **Multi-source data engineering**: merging five heterogeneous public datasets across district, county, and state keys with name normalization and missing-data handling.
+- **Robustness and diagnostics**: balance tables, paired *t*-tests on pre/post matching SMDs, parallel-trends visualization, weighted vs. unweighted comparisons.
+- **R ecosystem**: `tidyverse` for wrangling, `plm` for fixed-effects panel regression, `MatchIt`/`cobalt` for matching and balance diagnostics, `stargazer` for publication-style regression tables, `ggplot2` and `maps` for visualization.
+- **Honest reporting**: explicit discussion of sample selection (states dropped through merging), likely direction of bias, and subgroup sample-size limitations.
+
+## Context
+
+This was an independent research project completed for a graduate econometrics course. All data sourcing, cleaning, merging, model specification, and analysis are my own work.
+
+## Author
+
+**Dui Davidsson** — [GitHub](https://github.com/DavidssonDui)
+
+---
+
+*Full citations and references are in the [paper](PS_Lockdown_TS_.pdf).*
