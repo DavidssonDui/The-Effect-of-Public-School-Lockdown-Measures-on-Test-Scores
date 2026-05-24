@@ -1,4 +1,4 @@
-rm(list=ls()) 
+rm(list=ls())
 
 # Load Packages
 library(tidyverse)
@@ -24,6 +24,14 @@ inputdirecderived=paste(yourfiledirec,"/Microdata/derived/",sep="")
 
 codedirec=paste(yourfiledirec,"/Code/",sep="")
 outputdirec=paste(yourfiledirec,"/Output/",sep="")
+
+# Subdirectories for figures and tables (keeps Output/ organized)
+figuredirec=paste(outputdirec,"figures/",sep="")
+tabledirec=paste(outputdirec,"tables/",sep="")
+
+# Auto-create the output subfolders if they don't already exist
+dir.create(figuredirec, recursive = TRUE, showWarnings = FALSE)
+dir.create(tabledirec, recursive = TRUE, showWarnings = FALSE)
 ############
 
 # 1. Clean Data 
@@ -42,78 +50,78 @@ setwd(inputdirecderived)
 nces <- read_csv("ELSI_csv_export_6387938257895347813504.csv")
 
 ## Filter SEDA2024 for years 2018-2024 (excluding 2020, 2021), mathscores, and standardize district name
-seda2024mth <- seda2024 |> 
-  filter(year %in% c(2016 ,2017 ,2018, 2019, 2022, 2023, 2024)) |> 
-  filter(subject == "mth") |> 
-  rename(district = sedaadminname) |> 
-  mutate(blkgys = if_else(is.na(gys_mn_blk), 1, 0))
+seda2024mth <- seda2024 |>
+filter(year %in% c(2016 ,2017 ,2018, 2019, 2022, 2023, 2024)) |>
+filter(subject == "mth") |>
+rename(district = sedaadminname) |>
+mutate(blkgys = if_else(is.na(gys_mn_blk), 1, 0))
 
 seda2024mth$district <- tolower(seda2024mth$district)
 
 
 ## Summarize number of months that district had over 80% of schools in lockdown in the COVID-19 School Data Hub
-CSHD <- CSHD |> 
-  mutate(DistrictName = tolower(DistrictName)) |> 
-  rename(stateabb = StateAbbrev) |> 
-  rename(district = DistrictName) |> 
-  group_by(stateabb, district) |> 
+CSHD <- CSHD |>
+mutate(DistrictName = tolower(DistrictName)) |>
+rename(stateabb = StateAbbrev) |>
+rename(district = DistrictName) |>
+group_by(stateabb, district) |>
   summarise(months_virtual = sum(share_virtual>0.8, na.rm = TRUE))
 
 
 ## Calculate mean average for COVID-19 cases and deaths per 100k across time for each county
-covidcases <- covidcases |> 
-  mutate(county = tolower(county)) |> 
-  mutate(state = tolower(state)) |> 
-  group_by(county, state) |> 
-  summarise(caseavgp100k = mean(cases_avg_per_100k, na.rm = TRUE), deathavgp100k = mean(deaths_avg_per_100k, na.rm = TRUE))
+covidcases <- covidcases |>
+mutate(county = tolower(county)) |>
+mutate(state = tolower(state)) |>
+group_by(county, state) |>
+summarise(caseavgp100k = mean(cases_avg_per_100k, na.rm = TRUE), deathavgp100k = mean(deaths_avg_per_100k, na.rm = TRUE))
 
 ## Clean NCES data such that districts can be linked to voting and covid data through county name
-nces <- nces |> 
-  rename(district = `Agency Name`) |> 
-  rename(stateabb = `State Abbr [District] Latest available year`) |> 
-  rename(state = `State Name [District] Latest available year`) |> 
-  rename(pupltch = `Pupil/Teacher Ratio [District] 2021-22`) |> 
-  rename(instexpstd = `Instructional Expenditures (E13) per Pupil (V33) [District Finance] 2021-22`) |> 
-  mutate(across(c(`County Name [District] 2017-18`, `County Name [District] 2018-19`,
+nces <- nces |>
+rename(district = `Agency Name`) |>
+rename(stateabb = `State Abbr [District] Latest available year`) |>
+rename(state = `State Name [District] Latest available year`) |>
+rename(pupltch = `Pupil/Teacher Ratio [District] 2021-22`) |>
+rename(instexpstd = `Instructional Expenditures (E13) per Pupil (V33) [District Finance] 2021-22`) |>
+mutate(across(c(`County Name [District] 2017-18`, `County Name [District] 2018-19`,
                   `County Name [District] 2021-22`, `County Name [District] 2022-23`,`County Name [District] 2023-24`),
-                ~ na_if(.x, "†"))) |> 
-  mutate(county = coalesce(`County Name [District] 2017-18`, `County Name [District] 2018-19`,
-                           `County Name [District] 2021-22`, `County Name [District] 2022-23`, `County Name [District] 2023-24`)) |> 
-  mutate(county = str_remove(county, regex("County", ignore_case = TRUE)) |> str_squish()) |> 
-  mutate(state = tolower(state)) |> 
-  mutate(county = tolower(county)) |> 
-  mutate(district = tolower(district)) |> 
-  select(-c(`County Name [District] 2017-18`, `County Name [District] 2018-19`,
-            `County Name [District] 2021-22`, `County Name [District] 2022-23`, `County Name [District] 2023-24`)) |> 
-  mutate(pupltch = as.numeric(pupltch)) |> 
-  mutate(instexpstd = as.numeric(instexpstd))
+~ na_if(.x, "†"))) |>
+mutate(county = coalesce(`County Name [District] 2017-18`, `County Name [District] 2018-19`,
+                           `County Name [District] 2021-22`, `County Name [District] 2022-23`, `County Name [District] 2023-24`)) |>
+mutate(county = str_remove(county, regex("County", ignore_case = TRUE)) |> str_squish()) |>
+mutate(state = tolower(state)) |>
+mutate(county = tolower(county)) |>
+mutate(district = tolower(district)) |>
+select(-c(`County Name [District] 2017-18`, `County Name [District] 2018-19`,
+            `County Name [District] 2021-22`, `County Name [District] 2022-23`, `County Name [District] 2023-24`)) |>
+mutate(pupltch = as.numeric(pupltch)) |>
+mutate(instexpstd = as.numeric(instexpstd))
 
 
 ## Filter out SEDA2024 school demographic data for relevant years
-seda2024cov <- seda2024cov |> 
-  filter(year %in% c(2016,2017,2018, 2019, 2022, 2023, 2024))
+seda2024cov <- seda2024cov |>
+filter(year %in% c(2016,2017,2018, 2019, 2022, 2023, 2024))
 
 ## Clean up of voting data and calculation of share of county that voted for the democratic party
-polidata <- polidata |> 
-  filter(year == 2020) |> 
-  rename(stateabb = state_po) |> 
-  rename(county = county_name) |> 
-  filter(party == "DEMOCRAT") |> 
-  group_by(year, stateabb, county, candidate) |> 
-  summarise(total_candidatevotes = sum(candidatevotes, na.rm = TRUE), 
-            totalvotes = max(totalvotes, na.rm = TRUE), 
-            .groups = "drop")
+polidata <- polidata |>
+filter(year == 2020) |>
+rename(stateabb = state_po) |>
+rename(county = county_name) |>
+filter(party == "DEMOCRAT") |>
+group_by(year, stateabb, county, candidate) |>
+summarise(total_candidatevotes = sum(candidatevotes, na.rm = TRUE),
+totalvotes = max(totalvotes, na.rm = TRUE),
+.groups = "drop")
 
-polidata <- polidata |> 
-  group_by(county, stateabb) |> 
-  summarise(demshare = total_candidatevotes/totalvotes)
+polidata <- polidata |>
+group_by(county, stateabb) |>
+summarise(demshare = total_candidatevotes/totalvotes)
 
 polidata$county <- tolower(polidata$county)
 
 
 ## Merging of datasets
 
-sedamerged <- merge(seda2024mth, CSHD, by = c("district", "stateabb")) 
+sedamerged <- merge(seda2024mth, CSHD, by = c("district", "stateabb"))
 
 sedamerged <- merge(sedamerged, nces, by = c("district", "stateabb"))
 
@@ -123,8 +131,8 @@ sedamerged <- merge(sedamerged, polidata, by = c("county", "stateabb"))
 
 sedamerged <- merge(sedamerged, seda2024cov, by = c("year", "sedaadmin"))
 
-sedamerged <- sedamerged |> 
-  filter(totenrl >= 1000)
+sedamerged <- sedamerged |>
+filter(totenrl >= 1000)
 
 # save file to the derived directory 
 write.csv(sedamerged, paste(inputdirecderived,"sedamerged.csv", sep="") )
@@ -136,14 +144,14 @@ df=read.csv(paste(inputdirecderived,"sedamerged.csv", sep=""))
 
 ## Plotting of U.S map of sample location and districution
 
-county_counts <- sedamerged |> 
-  filter(grade == 3) |> 
-  filter(year == 2019) |> 
-  count(state, county) |> 
-  mutate(state = tolower(state),
-         county = tolower(county))
+county_counts <- sedamerged |>
+filter(grade == 3) |>
+filter(year == 2019) |>
+count(state, county) |>
+mutate(state = tolower(state),
+county = tolower(county))
 
-us_counties <- map_data("county")  # from base 'maps' package
+us_counties <- map_data("county") # from base 'maps' package
 
 
 map_data_joined <- us_counties |> 
@@ -163,7 +171,7 @@ ggplot(map_data_joined, aes(long, lat, group = group, fill = n)) +
     axis.ticks = element_blank(),
     legend.position = "none"
   )
-ggsave( paste(outputdirec,"Figure1.pdf"))
+ggsave( paste0(figuredirec,"Figure1.pdf"))
 
 ## Summary Statistics before and after cleaning/merging
 
@@ -215,7 +223,7 @@ summarystats <- data.frame(
 
 summarystats <- summarystats[order(summarystats$Dataset), ]
 
-stargazer(summarystats, out=paste(outputdirec,"Table1.txt"), summary = FALSE, rownames = FALSE,
+stargazer(summarystats, out=paste0(tabledirec,"Table1.txt"), summary = FALSE, rownames = FALSE,
           title = "Comparison of Means Before and After Cleaning by Dataset")
 
 ## Plotting of unweighted and weighted averages of GYS district mean test score by months in remote/virtual learning
@@ -246,7 +254,7 @@ df_weighted <- density |>
     axis.line = element_line(color = "black"),
   )
  
- ggsave( paste(outputdirec,"Figure2.pdf"))
+ ggsave( paste0(figuredirec,"Figure2.pdf"))
  
  ggplot(df_weighted, aes(x = months_virtual, y = weighted_avg)) +
   geom_point(aes(color = n), size = 3) +
@@ -259,7 +267,7 @@ df_weighted <- density |>
     axis.line = element_line(color = "black")  
   )
 
- ggsave( paste(outputdirec,"Figure3.pdf"))
+ ggsave( paste0(figuredirec,"Figure3.pdf"))
 
 ## Plotting of months in remote learning on socio-economic indiactors
  
@@ -272,7 +280,7 @@ df_weighted <- density |>
      panel.grid = element_blank(), 
      panel.background = element_blank(),  
      axis.line = element_line(color = "black"))
- ggsave( paste(outputdirec,"Figure4.pdf"))
+ ggsave( paste0(figuredirec,"Figure4.pdf"))
  
  ggplot(sedamerged, aes(x = months_virtual, y = single_momavgall)) +
    stat_summary(fun = mean, fill = "black", size = 0.5) +  
@@ -283,7 +291,7 @@ df_weighted <- density |>
      panel.grid = element_blank(), 
      panel.background = element_blank(),  
      axis.line = element_line(color = "black"))
- ggsave( paste(outputdirec,"Figure5.pdf"))
+ ggsave( paste0(figuredirec,"Figure5.pdf"))
  
  ggplot(sedamerged, aes(x = months_virtual, y = perhsp)) +
    stat_summary(fun = mean, fill = "black", size = 0.5) +  
@@ -294,7 +302,7 @@ df_weighted <- density |>
      panel.grid = element_blank(), 
      panel.background = element_blank(),  
      axis.line = element_line(color = "black"))
- ggsave( paste(outputdirec,"Figure8.pdf"))
+ ggsave( paste0(figuredirec,"Figure8.pdf"))
  
 ## Plotting of distribution of schools over/equal to or under six months in remote/virtual learning
  
@@ -316,7 +324,7 @@ df_weighted <- density |>
      y = "Number of Dsitricts",
      title = "Distribution of Districts in Remote Learning"
    ) + scale_x_discrete(labels = c("0.0" = "Under 6 Months", "1.0" = "Over 6 Months"))
- ggsave( paste(outputdirec,"Figure6.pdf"))
+ ggsave( paste0(figuredirec,"Figure6.pdf"))
  
  seda1month <- sedamerged |> 
    distinct(district, .keep_all = TRUE) |> 
@@ -335,7 +343,7 @@ df_weighted <- density |>
      x = "Months when over 80% of schools in remote leaning",
      y = "Number of Dsitricts",
    ) + scale_x_discrete(labels = c("0.0" = "Zero Months", "1.0" = "At Least One Month"))
- ggsave( paste(outputdirec,"Figure7.pdf"))
+ ggsave( paste0(figuredirec,"Figure7.pdf"))
  
 ## Filter out for test scores on grade 3 students
 seda2024merggr3 <- sedamerged |> 
@@ -368,7 +376,7 @@ olstwfe <- plm(gys_mn_all ~ months_virtual + pupltch + caseavgp100k + deathavgp1
 
 ## Summary of OLS regression results
 
-stargazer(olsmthnc, olsmthdc, olstwfe, olsblk, olshsp, olsECD, out=paste(outputdirec,"Table2.txt"),
+stargazer(olsmthnc, olsmthdc, olstwfe, olsblk, olshsp, olsECD, out=paste0(tabledirec,"Table2.txt"),
           title = "Regression Results",
           dep.var.labels = "Dependent Variable: Mean Test Score, all students",
           column.labels = c("No Controls", "District Controls", "DC & TW-FE", "Black", "Hispanic", "ECD"),
@@ -404,7 +412,7 @@ tab1_stargazer <- as.data.frame(tab1_df) |>
   tibble::rownames_to_column("Variable") # Keep row names as a column
 
 # Balance table results
-stargazer(tab1_stargazer, out=paste(outputdirec,"Table3.txt") , summary = FALSE, title = "Balence Test Table", smd = TRUE)
+stargazer(tab1_stargazer, out=paste0(tabledirec,"Table3.txt") , summary = FALSE, title = "Balence Test Table", smd = TRUE)
 
 ## Plotting of binned scatterplot for single_motherhood rate on district mean test scores
 
@@ -428,7 +436,7 @@ ggplot(df_binned, aes(x = age_bin_mean, y = outcome_mean)) +
     panel.background = element_blank(),  
     axis.line = element_line(color = "black")  
   )
-ggsave( paste(outputdirec,"Figure11.pdf"))
+ggsave( paste0(figuredirec,"Figure11.pdf"))
 
 df_binned <- sedamerged |> 
   mutate(bin = ntile(single_momavgall, 20)) |>  
@@ -449,7 +457,7 @@ ggplot(df_binned, aes(x = age_bin_mean, y = outcome_mean)) +
     panel.background = element_blank(),  
     axis.line = element_line(color = "black")  
   )
-ggsave( paste(outputdirec,"Figure12.pdf"))
+ggsave( paste0(figuredirec,"Figure12.pdf"))
 
 ## Filtering of new merged data set for propensity score matching and DiD regression
 
@@ -509,7 +517,7 @@ ggplot(long_df, aes(x = reorder(Variable, SMD), y = SMD, fill = Time)) +
                                "Diff.Adj" = "red"),
                     labels = c("Diff.Un" = "Unmatched Difference",
                                "Diff.Adj" = "Matched Difference"))
- ggsave( paste(outputdirec,"Figure9.pdf"))
+ ggsave( paste0(figuredirec,"Figure9.pdf"))
 
 
 balance <- bal.tab(matchit_result, un = TRUE, m.threshold = 0.1)
@@ -545,52 +553,51 @@ olstwfewht <- plm(gys_mn_wht ~ treat + post + treat*post + pupltch + caseavgp100
 
 ## Results from DiD regressions
 
-stargazer(olsmth_dc, olsmth_dc1, olstwfe, olstwfeblk, olstwfehsp, out=paste(outputdirec,"Table4.txt"),
-          title = "Regression Results",
-          dep.var.labels = "Dependent Variable: Mean Test Score, all students",
-          column.labels = c("No Controls", "District Controls", "DC & TW-FE", "Black", "Hispanic", "ECD"),
-          digits = 3,                 # Limits decimal places for coefficients
-          digits.extra = 2,
-          omit = c("pupltch", "instexpstd", "enrl38"),  
-          omit.stat = c("f", "ser"))
+stargazer(olsmth_dc, olsmth_dc1, olstwfe, olstwfeblk, olstwfehsp, out=paste0(tabledirec,"Table4.txt"),
+title = "Regression Results",
+dep.var.labels = "Dependent Variable: Mean Test Score, all students",
+column.labels = c("No Controls", "District Controls", "DC & TW-FE", "Black", "Hispanic", "ECD"),
+digits = 3, # Limits decimal places for coefficients
+digits.extra = 2,
+omit = c("pupltch", "instexpstd", "enrl38"),
+omit.stat = c("f", "ser"))
 
 
 ## Ploting of trends between the treated and control group
 
-pt_means <- matched_data1 |> 
-  group_by(year, treat) |> 
-  summarise(
-    mean = mean(gys_mn_all, na.rm = TRUE),
-    se = sd(gys_mn_all, na.rm = TRUE) / sqrt(n()),
-    .groups = "drop"
-  ) |> 
-  mutate(group = ifelse(treat == 1, "Treatment", "Control")) |> 
-  select(-treat)
+pt_means <- matched_data1 |>
+group_by(year, treat) |>
+summarise(
+mean = mean(gys_mn_all, na.rm = TRUE),
+se = sd(gys_mn_all, na.rm = TRUE) / sqrt(n()),
+.groups = "drop"
+) |>
+mutate(group = ifelse(treat == 1, "Treatment", "Control")) |>
+select(-treat)
 
-pt_diff <- pt_means |> 
-  pivot_wider(names_from = group, values_from = c(mean, se)) %>%
-  mutate(
-    diff = mean_Treatment - mean_Control,
-    se_diff = sqrt(se_Treatment^2 + se_Control^2),
-    ci_lower = diff - 1.96 * se_diff,
-    ci_upper = diff + 1.96 * se_diff
-  )
+pt_diff <- pt_means |>
+pivot_wider(names_from = group, values_from = c(mean, se)) %>%
+mutate(
+diff = mean_Treatment - mean_Control,
+se_diff = sqrt(se_Treatment^2 + se_Control^2),
+ci_lower = diff - 1.96 * se_diff,
+ci_upper = diff + 1.96 * se_diff
+)
 
 ggplot(pt_diff, aes(x = year, y = diff)) +
-  geom_line(color = "black", size = 1.2) +
-  stat_summary(fun = mean, fill = "steelblue", color = "black", size = 0.5) +
-  geom_line(aes(y = ci_upper), linetype = "dotted", color = "black") +
-  geom_line(aes(y = ci_lower), linetype = "dotted", color = "black") +
-  geom_hline(yintercept = pt_diff$diff[1], linetype = "solid", color = "red") +
-  labs(
-    title = "Difference in District Mean Test Scores between Treatment and Control Group",
-    x = "Year",
-    y = "Difference in GYS District Mean Test Score (Treatment - Control)"
-  ) +
-  theme(
-    panel.grid = element_blank(), 
-    panel.background = element_blank(), 
-    axis.line = element_line(color = "black")  
-  )
-ggsave( paste(outputdirec,"Figure10.pdf"))
-
+geom_line(color = "black", size = 1.2) +
+stat_summary(fun = mean, fill = "steelblue", color = "black", size = 0.5) +
+geom_line(aes(y = ci_upper), linetype = "dotted", color = "black") +
+geom_line(aes(y = ci_lower), linetype = "dotted", color = "black") +
+geom_hline(yintercept = pt_diff$diff[1], linetype = "solid", color = "red") +
+labs(
+title = "Difference in District Mean Test Scores between Treatment and Control Group",
+x = "Year",
+y = "Difference in GYS District Mean Test Score (Treatment - Control)"
+) +
+theme(
+panel.grid = element_blank(),
+panel.background = element_blank(),
+axis.line = element_line(color = "black")
+)
+ggsave( paste0(figuredirec,"Figure10.pdf"))
