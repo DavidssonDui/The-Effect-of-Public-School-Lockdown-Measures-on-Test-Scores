@@ -131,7 +131,7 @@ Update the `yourfiledirec` variable on line 17 to point to your local `Replicati
 
 ## Context
 
-This was an independent research project completed for a graduate econometrics course. All data sourcing, cleaning, merging, model specification, and analysis are my own work.
+This was an independent research project completed for ECON 4AA3 (Economic Specialist Seminar) under supervison from Dr. Angela Zheng at McMaster University. All data sourcing, cleaning, merging, model specification, and analysis are my own work.
 
 ## Author
 
