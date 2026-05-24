@@ -1,2 +1,0 @@
-# The-Effect-of-Public-School-Lockdown-Measures-on-Test-Scores
-This paper examines the impact that COVID-19 school lockdown measures on district-level standardized math test scores in the United States. I combine test score data  with district-level instructional-mode data to estimate the marginal effects of different remote learning exposure during the 2020–2021 school year in the United States.
